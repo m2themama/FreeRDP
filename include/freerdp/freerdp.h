@@ -347,6 +347,8 @@ extern "C"
 	/**
 	 *  Defines the possible disconnect reasons in the MCS Disconnect Provider
 	 *  Ultimatum PDU
+	 *
+	 *  [T.125] 7 Structure of Version 2 MCSPDUs Reason ::= ENUMERATED
 	 */
 
 	enum Disconnect_Ultimatum
@@ -579,6 +581,16 @@ owned by rdpRdp */
 	FREERDP_API BOOL freerdp_shall_disconnect_context(const rdpContext* context);
 	FREERDP_API BOOL freerdp_disconnect(freerdp* instance);
 
+	/** @brief stringify disconnect reason of type Disconnect_Ultimatum
+	 *
+	 *  @param reason the reason of type \b Disconnect_Ultimatum
+	 *
+	 *  @return a string representation of \b reason or rn-unknown
+	 *
+	 *  @since version 3.13.0
+	 */
+	FREERDP_API const char* freerdp_disconnect_reason_string(int reason);
+
 	WINPR_DEPRECATED_VAR("use freerdp_disconnect_before_reconnect_context instead",
 	                     FREERDP_API BOOL freerdp_disconnect_before_reconnect(freerdp* instance));
 	FREERDP_API BOOL freerdp_disconnect_before_reconnect_context(rdpContext* context);
@@ -589,8 +601,8 @@ owned by rdpRdp */
 	FREERDP_API UINT freerdp_channels_detach(freerdp* instance);
 
 #if defined(WITH_FREERDP_DEPRECATED)
-	FREERDP_API WINPR_DEPRECATED_VAR("Use freerdp_get_event_handles",
-	                                 BOOL freerdp_get_fds(freerdp* instance, void** rfds,
+	WINPR_DEPRECATED_VAR("Use freerdp_get_event_handles",
+	                     FREERDP_API BOOL freerdp_get_fds(freerdp* instance, void** rfds,
 	                                                      int* rcount, void** wfds, int* wcount));
 #endif
 
@@ -735,6 +747,20 @@ owned by rdpRdp */
 
 	FREERDP_API BOOL freerdp_is_valid_mcs_create_request(const BYTE* data, size_t size);
 	FREERDP_API BOOL freerdp_is_valid_mcs_create_response(const BYTE* data, size_t size);
+
+	/** \brief Persist the current credentials (gateway, target server, ...)
+	 *
+	 *  FreeRDP internally keeps a backup of connection settings to revert to whenever a reconnect
+	 * is required. If a client modifies settings during runtime after pre-connect call this
+	 * function or the credentials will be lost on any reconnect, redirect, ...
+	 *
+	 *  \param context The RDP context to use, must not be \b NULL
+	 *
+	 *  \return \b TRUE if successful, \b FALSE if settings could not be applied (wrong session
+	 * state, ...)
+	 *  \since version 3.12.0
+	 */
+	FREERDP_API BOOL freerdp_persist_credentials(rdpContext* context);
 
 #ifdef __cplusplus
 }

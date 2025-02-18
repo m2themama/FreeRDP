@@ -536,7 +536,8 @@ error:
 	return NULL;
 }
 
-static void* convert_any_uri_list_to_filedescriptors(wClipboard* clipboard, UINT32 formatId,
+static void* convert_any_uri_list_to_filedescriptors(wClipboard* clipboard,
+                                                     WINPR_ATTR_UNUSED UINT32 formatId,
                                                      UINT32* pSize)
 {
 	FILEDESCRIPTORW* descriptors = NULL;
@@ -1031,9 +1032,7 @@ static int32_t file_get_size(const struct synthetic_file* file, UINT64* size)
 static UINT delegate_file_request_size(wClipboardDelegate* delegate,
                                        const wClipboardFileSizeRequest* request)
 {
-	UINT error = NO_ERROR;
 	UINT64 size = 0;
-	struct synthetic_file* file = NULL;
 
 	if (!delegate || !delegate->clipboard || !request)
 		return ERROR_BAD_ARGUMENTS;
@@ -1041,15 +1040,16 @@ static UINT delegate_file_request_size(wClipboardDelegate* delegate,
 	if (delegate->clipboard->sequenceNumber != delegate->clipboard->fileListSequenceNumber)
 		return ERROR_INVALID_STATE;
 
-	file = ArrayList_GetItem(delegate->clipboard->localFiles, request->listIndex);
+	struct synthetic_file* file =
+	    ArrayList_GetItem(delegate->clipboard->localFiles, request->listIndex);
 
 	if (!file)
 		return ERROR_INDEX_ABSENT;
 
-	error = file_get_size(file, &size);
-
+	const int32_t s = file_get_size(file, &size);
+	uint32_t error = 0;
 	if (error)
-		error = delegate->ClipboardFileSizeFailure(delegate, request, error);
+		error = delegate->ClipboardFileSizeFailure(delegate, request, (UINT)s);
 	else
 		error = delegate->ClipboardFileSizeSuccess(delegate, request, size);
 
@@ -1217,27 +1217,31 @@ static UINT delegate_file_request_range(wClipboardDelegate* delegate,
 	return NO_ERROR;
 }
 
-static UINT dummy_file_size_success(wClipboardDelegate* delegate,
-                                    const wClipboardFileSizeRequest* request, UINT64 fileSize)
+static UINT dummy_file_size_success(WINPR_ATTR_UNUSED wClipboardDelegate* delegate,
+                                    WINPR_ATTR_UNUSED const wClipboardFileSizeRequest* request,
+                                    WINPR_ATTR_UNUSED UINT64 fileSize)
 {
 	return ERROR_NOT_SUPPORTED;
 }
 
-static UINT dummy_file_size_failure(wClipboardDelegate* delegate,
-                                    const wClipboardFileSizeRequest* request, UINT errorCode)
+static UINT dummy_file_size_failure(WINPR_ATTR_UNUSED wClipboardDelegate* delegate,
+                                    WINPR_ATTR_UNUSED const wClipboardFileSizeRequest* request,
+                                    WINPR_ATTR_UNUSED UINT errorCode)
 {
 	return ERROR_NOT_SUPPORTED;
 }
 
-static UINT dummy_file_range_success(wClipboardDelegate* delegate,
-                                     const wClipboardFileRangeRequest* request, const BYTE* data,
-                                     UINT32 size)
+static UINT dummy_file_range_success(WINPR_ATTR_UNUSED wClipboardDelegate* delegate,
+                                     WINPR_ATTR_UNUSED const wClipboardFileRangeRequest* request,
+                                     WINPR_ATTR_UNUSED const BYTE* data,
+                                     WINPR_ATTR_UNUSED UINT32 size)
 {
 	return ERROR_NOT_SUPPORTED;
 }
 
-static UINT dummy_file_range_failure(wClipboardDelegate* delegate,
-                                     const wClipboardFileRangeRequest* request, UINT errorCode)
+static UINT dummy_file_range_failure(WINPR_ATTR_UNUSED wClipboardDelegate* delegate,
+                                     WINPR_ATTR_UNUSED const wClipboardFileRangeRequest* request,
+                                     WINPR_ATTR_UNUSED UINT errorCode)
 {
 	return ERROR_NOT_SUPPORTED;
 }

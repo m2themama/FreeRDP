@@ -1010,7 +1010,7 @@ out:
  * @param s stream
  */
 
-BOOL mcs_recv_erect_domain_request(rdpMcs* mcs, wStream* s)
+BOOL mcs_recv_erect_domain_request(WINPR_ATTR_UNUSED rdpMcs* mcs, wStream* s)
 {
 	UINT16 length = 0;
 	UINT32 subHeight = 0;
@@ -1243,7 +1243,7 @@ BOOL mcs_send_channel_join_request(rdpMcs* mcs, UINT16 channelId)
  * @param mcs mcs module
  */
 
-BOOL mcs_recv_channel_join_confirm(rdpMcs* mcs, wStream* s, UINT16* channelId)
+BOOL mcs_recv_channel_join_confirm(WINPR_ATTR_UNUSED rdpMcs* mcs, wStream* s, UINT16* channelId)
 {
 	UINT16 length = 0;
 	BYTE result = 0;
@@ -1312,7 +1312,7 @@ fail:
  * @param mcs mcs module
  */
 
-BOOL mcs_recv_disconnect_provider_ultimatum(rdpMcs* mcs, wStream* s, int* reason)
+BOOL mcs_recv_disconnect_provider_ultimatum(WINPR_ATTR_UNUSED rdpMcs* mcs, wStream* s, int* reason)
 {
 	BYTE b1 = 0;
 	BYTE b2 = 0;
@@ -1363,7 +1363,7 @@ BOOL mcs_recv_disconnect_provider_ultimatum(rdpMcs* mcs, wStream* s, int* reason
  * @param mcs mcs module
  */
 
-BOOL mcs_send_disconnect_provider_ultimatum(rdpMcs* mcs)
+BOOL mcs_send_disconnect_provider_ultimatum(rdpMcs* mcs, enum Disconnect_Ultimatum reason)
 {
 	wStream* s = NULL;
 	int status = -1;
@@ -1379,10 +1379,12 @@ BOOL mcs_send_disconnect_provider_ultimatum(rdpMcs* mcs)
 	if (!mcs_write_domain_mcspdu_header(s, DomainMCSPDU_DisconnectProviderUltimatum, length, 1))
 		goto fail;
 
-	if (!per_write_enumerated(s, 0x80, 0))
+	if (!per_write_enumerated(s, 0x80, WINPR_ASSERTING_INT_CAST(BYTE, reason)))
 		goto fail;
 	status = transport_write(mcs->transport, s);
 fail:
+	WLog_DBG(TAG, "sending DisconnectProviderUltimatum(%s)",
+	         freerdp_disconnect_reason_string((int)reason));
 	Stream_Free(s, TRUE);
 	return (status < 0) ? FALSE : TRUE;
 }

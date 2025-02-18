@@ -242,8 +242,12 @@ BOOL xf_detect_monitors(xfContext* xfc, UINT32* pMaxWidth, UINT32* pMaxHeight)
 
 		XFree(screenInfo);
 	}
-
+	else
 #endif
+	{
+		/* Both XRandR and Xinerama are either not compiled in or are not working, do nothing.
+		 */
+	}
 
 	rdpMonitor* rdpmonitors = calloc(vscreen->nmonitors + 1, sizeof(rdpMonitor));
 	if (!rdpmonitors)
@@ -570,9 +574,9 @@ BOOL xf_detect_monitors(xfContext* xfc, UINT32* pMaxWidth, UINT32* pMaxHeight)
 
 		if (freerdp_settings_get_bool(settings, FreeRDP_Workarea))
 		{
+			INT64 bottom = 1LL * xfc->workArea.height + xfc->workArea.y - 1LL;
 			vscreen->area.top = WINPR_ASSERTING_INT_CAST(UINT16, xfc->workArea.y);
-			vscreen->area.bottom =
-			    WINPR_ASSERTING_INT_CAST(UINT16, xfc->workArea.height + xfc->workArea.y - 1);
+			vscreen->area.bottom = WINPR_ASSERTING_INT_CAST(UINT16, bottom);
 		}
 
 		if (!primaryMonitorFound)

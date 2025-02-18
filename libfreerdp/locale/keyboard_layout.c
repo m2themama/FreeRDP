@@ -60,14 +60,14 @@ struct LanguageIdentifier
 
 typedef struct
 {
-	DWORD code; /* Keyboard layout code */
+	INT64 code; /* Keyboard layout code */
 	DWORD id;   /* Keyboard variant ID */
 	char* name; /* Keyboard layout variant name */
 } RDP_KEYBOARD_LAYOUT_VARIANT;
 
 typedef struct
 {
-	DWORD code; /* Keyboard layout code */
+	INT64 code; /* Keyboard layout code */
 	char* file; /* IME file */
 	char* name; /* Keyboard layout name */
 } RDP_KEYBOARD_IME;
@@ -1033,7 +1033,7 @@ static WINPR_JSON* load_layouts_from_file(const char* filename)
 		goto end;
 	}
 
-	jstr = calloc(jstrlen + 1, sizeof(char));
+	jstr = calloc((size_t)jstrlen + 1, sizeof(char));
 	if (!jstr)
 	{
 		WLog_WARN(TAG, "resource file '%s' failed to allocate buffer of size %" PRId64, filename,
@@ -1041,14 +1041,14 @@ static WINPR_JSON* load_layouts_from_file(const char* filename)
 		goto end;
 	}
 
-	if (fread(jstr, jstrlen, sizeof(char), fp) != 1)
+	if (fread(jstr, (size_t)jstrlen, sizeof(char), fp) != 1)
 	{
 		WLog_WARN(TAG, "resource file '%s' failed to read buffer of size %" PRId64, filename,
 		          jstrlen);
 		goto end;
 	}
 
-	json = WINPR_JSON_ParseWithLength(jstr, jstrlen);
+	json = WINPR_JSON_ParseWithLength(jstr, (size_t)jstrlen);
 	if (!json)
 		WLog_WARN(TAG, "resource file '%s' is not a valid JSON file", filename);
 end:
@@ -1106,7 +1106,24 @@ static UINT32 get_object_integer(WINPR_JSON* json, size_t pos, const char* name)
 		return 0;
 	}
 
-	return WINPR_JSON_GetNumberValue(obj);
+	return (UINT32)WINPR_JSON_GetNumberValue(obj);
+}
+
+static bool parse_json_layout_entry_id(WINPR_JSON* json, size_t pos, RDP_KEYBOARD_LAYOUT* entry)
+{
+	WINPR_ASSERT(entry);
+	const int64_t code = get_object_integer(json, pos, "code");
+	if ((code < INT32_MIN) || (code > UINT32_MAX))
+	{
+		WLog_WARN(TAG,
+		          "Invalid JSON 'code' entry at entry %" PRIuz
+		          ", value out of range: %d <= %" PRId64 " <= %" PRIu32,
+		          pos, INT32_MIN, code, UINT32_MAX);
+		return false;
+	}
+	entry->code = WINPR_CXX_COMPAT_CAST(uint32_t, code);
+	entry->name = get_object_str(json, pos, "name");
+	return entry->name != NULL;
 }
 
 static BOOL parse_json_layout_entry(WINPR_JSON* json, size_t pos, RDP_KEYBOARD_LAYOUT* entry)
@@ -1118,9 +1135,7 @@ static BOOL parse_json_layout_entry(WINPR_JSON* json, size_t pos, RDP_KEYBOARD_L
 		return FALSE;
 	}
 
-	entry->code = get_object_integer(json, pos, "code");
-	entry->name = get_object_str(json, pos, "name");
-	if (!entry->name)
+	if (!parse_json_layout_entry_id(json, pos, entry))
 	{
 		clear_keyboard_layout(entry);
 		return FALSE;
@@ -1169,14 +1184,17 @@ static BOOL parse_json_variant_entry(WINPR_JSON* json, size_t pos,
 		return FALSE;
 	}
 
-	entry->code = get_object_integer(json, pos, "code");
-	entry->id = get_object_integer(json, pos, "id");
-	entry->name = get_object_str(json, pos, "name");
-	if (!entry->name)
+	RDP_KEYBOARD_LAYOUT val = { 0 };
+	const BOOL rc = parse_json_layout_entry_id(json, pos, &val);
+	entry->code = val.code;
+	entry->name = val.name;
+
+	if (!rc)
 	{
 		clear_keyboard_variant(entry);
 		return FALSE;
 	}
+	entry->id = get_object_integer(json, pos, "id");
 	return TRUE;
 }
 
@@ -1321,6 +1339,13 @@ static UINT32 rdp_keyboard_layout_by_name(const char* name)
 	return 0;
 }
 
+static uint32_t internal2unsigned(int64_t code)
+{
+	WINPR_ASSERT(code >= INT32_MIN);
+	WINPR_ASSERT(code <= UINT32_MAX);
+	return WINPR_CXX_COMPAT_CAST(uint32_t, code);
+}
+
 static UINT32 rdp_keyboard_variant_by_name(const char* name)
 {
 	WINPR_ASSERT(name);
@@ -1330,7 +1355,7 @@ static UINT32 rdp_keyboard_variant_by_name(const char* name)
 	{
 		const RDP_KEYBOARD_LAYOUT_VARIANT* const variant = &sRDP_KEYBOARD_LAYOUT_VARIANT_TABLE[i];
 		if (strcmp(variant->name, name) == 0)
-			return variant->code;
+			return internal2unsigned(variant->code);
 	}
 	return 0;
 }
@@ -1344,7 +1369,7 @@ static UINT32 rdp_keyboard_ime_by_name(const char* name)
 	{
 		const RDP_KEYBOARD_IME* const ime = &sRDP_KEYBOARD_IME_TABLE[i];
 		if (strcmp(ime->name, name) == 0)
-			return ime->code;
+			return internal2unsigned(ime->code);
 	}
 	return 0;
 }
@@ -1405,7 +1430,7 @@ static BOOL rdp_keyboard_layout_clone_append(RDP_KEYBOARD_LAYOUT** layouts, size
 	{
 		const RDP_KEYBOARD_LAYOUT* const ime = &sRDP_KEYBOARD_LAYOUT_TABLE[i];
 		RDP_KEYBOARD_LAYOUT* layout = &(*layouts)[i + offset];
-		layout->code = ime->code;
+		layout->code = internal2unsigned(ime->code);
 		if (ime->name)
 			layout->name = _strdup(ime->name);
 
@@ -1431,7 +1456,7 @@ static BOOL rdp_keyboard_variant_clone_append(RDP_KEYBOARD_LAYOUT** layouts, siz
 	{
 		const RDP_KEYBOARD_LAYOUT_VARIANT* const ime = &sRDP_KEYBOARD_LAYOUT_VARIANT_TABLE[i];
 		RDP_KEYBOARD_LAYOUT* layout = &(*layouts)[i + offset];
-		layout->code = ime->code;
+		layout->code = internal2unsigned(ime->code);
 		if (ime->name)
 			layout->name = _strdup(ime->name);
 
@@ -1457,7 +1482,7 @@ static BOOL rdp_keyboard_ime_clone_append(RDP_KEYBOARD_LAYOUT** layouts, size_t*
 	{
 		const RDP_KEYBOARD_IME* const ime = &sRDP_KEYBOARD_IME_TABLE[i];
 		RDP_KEYBOARD_LAYOUT* layout = &(*layouts)[i + offset];
-		layout->code = ime->code;
+		layout->code = internal2unsigned(ime->code);
 		if (ime->name)
 			layout->name = _strdup(ime->name);
 

@@ -444,7 +444,8 @@ static BOOL urbdrc_announce_devices(IUDEVMAN* udevman)
 	return error == ERROR_SUCCESS;
 }
 
-static UINT urbdrc_device_control_channel(GENERIC_CHANNEL_CALLBACK* callback, wStream* s)
+static UINT urbdrc_device_control_channel(GENERIC_CHANNEL_CALLBACK* callback,
+                                          WINPR_ATTR_UNUSED wStream* s)
 {
 	URBDRC_PLUGIN* urbdrc = (URBDRC_PLUGIN*)callback->plugin;
 	IUDEVMAN* udevman = urbdrc->udevman;
@@ -647,8 +648,9 @@ static UINT urbdrc_on_close(IWTSVirtualChannelCallback* pChannelCallback)
  * @return 0 on success, otherwise a Win32 error code
  */
 static UINT urbdrc_on_new_channel_connection(IWTSListenerCallback* pListenerCallback,
-                                             IWTSVirtualChannel* pChannel, BYTE* pData,
-                                             BOOL* pbAccept,
+                                             IWTSVirtualChannel* pChannel,
+                                             WINPR_ATTR_UNUSED BYTE* pData,
+                                             WINPR_ATTR_UNUSED BOOL* pbAccept,
                                              IWTSVirtualChannelCallback** ppCallback)
 {
 	GENERIC_LISTENER_CALLBACK* listener_callback = (GENERIC_LISTENER_CALLBACK*)pListenerCallback;
@@ -857,27 +859,25 @@ static UINT urbdrc_process_addin_args(URBDRC_PLUGIN* urbdrc, const ADDIN_ARGV* a
 BOOL add_device(IUDEVMAN* idevman, UINT32 flags, BYTE busnum, BYTE devnum, UINT16 idVendor,
                 UINT16 idProduct)
 {
-	size_t success = 0;
-	URBDRC_PLUGIN* urbdrc = NULL;
-	UINT32 mask = 0;
 	UINT32 regflags = 0;
 
 	if (!idevman)
 		return FALSE;
 
-	urbdrc = (URBDRC_PLUGIN*)idevman->plugin;
+	URBDRC_PLUGIN* urbdrc = (URBDRC_PLUGIN*)idevman->plugin;
 
 	if (!urbdrc || !urbdrc->listener_callback)
 		return FALSE;
 
-	mask = (DEVICE_ADD_FLAG_VENDOR | DEVICE_ADD_FLAG_PRODUCT);
+	UINT32 mask = (DEVICE_ADD_FLAG_VENDOR | DEVICE_ADD_FLAG_PRODUCT);
 	if ((flags & mask) == mask)
 		regflags |= UDEVMAN_FLAG_ADD_BY_VID_PID;
 	mask = (DEVICE_ADD_FLAG_BUS | DEVICE_ADD_FLAG_DEV);
 	if ((flags & mask) == mask)
 		regflags |= UDEVMAN_FLAG_ADD_BY_ADDR;
 
-	success = idevman->register_udevice(idevman, busnum, devnum, idVendor, idProduct, regflags);
+	const size_t success =
+	    idevman->register_udevice(idevman, busnum, devnum, idVendor, idProduct, regflags);
 
 	if ((success > 0) && (flags & DEVICE_ADD_FLAG_REGISTER))
 	{

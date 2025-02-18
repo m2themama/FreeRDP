@@ -27,10 +27,10 @@
 
 #if DEFINE_UNICODE
 
-HRESULT PATH_ALLOC_COMBINE(PCWSTR pszPathIn, PCWSTR pszMore, unsigned long dwFlags,
-                           PWSTR* ppszPathOut)
+HRESULT PATH_ALLOC_COMBINE(PCWSTR pszPathIn, PCWSTR pszMore,
+                           WINPR_ATTR_UNUSED unsigned long dwFlags, PWSTR* ppszPathOut)
 {
-	WLog_WARN(TAG, "has known bugs and needs fixing.");
+	WLog_WARN("TODO", "has known bugs and needs fixing.");
 
 	if (!ppszPathOut)
 		return E_INVALIDARG;
@@ -98,9 +98,10 @@ HRESULT PATH_ALLOC_COMBINE(PCWSTR pszPathIn, PCWSTR pszMore, unsigned long dwFla
 
 #else
 
-HRESULT PATH_ALLOC_COMBINE(PCSTR pszPathIn, PCSTR pszMore, unsigned long dwFlags, PSTR* ppszPathOut)
+HRESULT PATH_ALLOC_COMBINE(PCSTR pszPathIn, PCSTR pszMore, WINPR_ATTR_UNUSED unsigned long dwFlags,
+                           PSTR* ppszPathOut)
 {
-	WLog_WARN(TAG, "has known bugs and needs fixing.");
+	WLog_WARN("TODO", "has known bugs and needs fixing.");
 
 	if (!ppszPathOut)
 		return E_INVALIDARG;

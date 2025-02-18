@@ -297,8 +297,8 @@ BOOL xf_picture_transform_required(xfContext* xfc)
 }
 #endif /* WITH_XRENDER defined */
 
-void xf_draw_screen_(xfContext* xfc, int x, int y, int w, int h, const char* fkt, const char* file,
-                     int line)
+void xf_draw_screen_(xfContext* xfc, int x, int y, int w, int h, const char* fkt,
+                     WINPR_ATTR_UNUSED const char* file, WINPR_ATTR_UNUSED int line)
 {
 	if (!xfc)
 	{
@@ -828,30 +828,22 @@ void xf_minimize(xfContext* xfc)
 	PubSub_OnWindowStateChange(context->pubSub, context, &e);
 }
 
-void xf_lock_x11_(xfContext* xfc, const char* fkt)
+void xf_lock_x11_(xfContext* xfc, WINPR_ATTR_UNUSED const char* fkt)
 {
-
 	if (!xfc->UseXThreads)
 		(void)WaitForSingleObject(xfc->mutex, INFINITE);
 	else
 		XLockDisplay(xfc->display);
 
 	xfc->locked++;
-#ifdef WITH_DEBUG_X11
-	WLog_VRB(TAG, "[%" PRIu32 "] from %s", xfc->locked, fkt);
-#endif
 }
 
-void xf_unlock_x11_(xfContext* xfc, const char* fkt)
+void xf_unlock_x11_(xfContext* xfc, WINPR_ATTR_UNUSED const char* fkt)
 {
 	if (xfc->locked == 0)
 		WLog_WARN(TAG, "X11: trying to unlock although not locked!");
 	else
 		xfc->locked--;
-
-#ifdef WITH_DEBUG_X11
-	WLog_VRB(TAG, "[%" PRIu32 "] from %s", xfc->locked, fkt);
-#endif
 
 	if (!xfc->UseXThreads)
 		(void)ReleaseMutex(xfc->mutex);
@@ -1084,7 +1076,7 @@ static UINT16 get_flags_for_button(size_t button)
 	return 0;
 }
 
-static void xf_button_map_init(xfContext* xfc)
+void xf_button_map_init(xfContext* xfc)
 {
 	size_t pos = 0;
 	/* loop counter for array initialization */
@@ -1151,20 +1143,16 @@ static void xf_button_map_init(xfContext* xfc)
  */
 static BOOL xf_pre_connect(freerdp* instance)
 {
-	rdpChannels* channels = NULL;
-	rdpSettings* settings = NULL;
-	rdpContext* context = NULL;
-	xfContext* xfc = NULL;
 	UINT32 maxWidth = 0;
 	UINT32 maxHeight = 0;
 
 	WINPR_ASSERT(instance);
 
-	context = instance->context;
-	xfc = (xfContext*)instance->context;
+	rdpContext* context = instance->context;
 	WINPR_ASSERT(context);
+	xfContext* xfc = (xfContext*)context;
 
-	settings = context->settings;
+	rdpSettings* settings = context->settings;
 	WINPR_ASSERT(settings);
 
 	if (!freerdp_settings_set_bool(settings, FreeRDP_CertificateCallbackPreferPEM, TRUE))
@@ -1175,9 +1163,6 @@ static BOOL xf_pre_connect(freerdp* instance)
 		if (!xf_setup_x11(xfc))
 			return FALSE;
 	}
-
-	channels = context->channels;
-	WINPR_ASSERT(channels);
 
 	if (!freerdp_settings_set_uint32(settings, FreeRDP_OsMajorType, OSMAJORTYPE_UNIX))
 		return FALSE;
@@ -1217,7 +1202,15 @@ static BOOL xf_pre_connect(freerdp* instance)
 
 	if (!freerdp_settings_get_bool(settings, FreeRDP_AuthenticationOnly))
 	{
+		const char* KeyboardRemappingList = freerdp_settings_get_string(
+		    xfc->common.context.settings, FreeRDP_KeyboardRemappingList);
+
+		xfc->remap_table = freerdp_keyboard_remap_string_to_list(KeyboardRemappingList);
+		if (!xfc->remap_table)
+			return FALSE;
 		if (!xf_keyboard_init(xfc))
+			return FALSE;
+		if (!xf_keyboard_action_script_init(xfc))
 			return FALSE;
 		if (!xf_detect_monitors(xfc, &maxWidth, &maxHeight))
 			return FALSE;
@@ -1328,7 +1321,8 @@ static BOOL xf_process_pipe(rdpContext* context, const char* pipe)
 	return TRUE;
 }
 
-static void cleanup_pipe(int signum, const char* signame, void* context)
+static void cleanup_pipe(WINPR_ATTR_UNUSED int signum, WINPR_ATTR_UNUSED const char* signame,
+                         void* context)
 {
 	const char* pipe = context;
 	if (!pipe)
@@ -1504,6 +1498,9 @@ static void xf_post_disconnect(freerdp* instance)
 		xfc->drawable = 0;
 	else
 		xf_DestroyDummyWindow(xfc, xfc->drawable);
+
+	freerdp_keyboard_remap_free(xfc->remap_table);
+	xfc->remap_table = NULL;
 
 	xf_window_free(xfc);
 }
@@ -2089,7 +2086,7 @@ static BOOL xfreerdp_client_new(freerdp* instance, rdpContext* context)
 	return TRUE;
 }
 
-static void xfreerdp_client_free(freerdp* instance, rdpContext* context)
+static void xfreerdp_client_free(WINPR_ATTR_UNUSED freerdp* instance, rdpContext* context)
 {
 	if (!context)
 		return;

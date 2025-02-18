@@ -416,17 +416,6 @@ uint32_t sdlInput::prefToMask()
 	return mod;
 }
 
-static const char* sdl_scancode_name(Uint32 scancode)
-{
-	for (const auto& cur : map)
-	{
-		if (cur.sdl == scancode)
-			return cur.sdl_name;
-	}
-
-	return "SDL_SCANCODE_UNKNOWN";
-}
-
 static Uint32 sdl_scancode_val(const char* scancodeName)
 {
 	for (const auto& cur : map)
@@ -436,28 +425,6 @@ static Uint32 sdl_scancode_val(const char* scancodeName)
 	}
 
 	return SDL_SCANCODE_UNKNOWN;
-}
-
-static const char* sdl_rdp_scancode_name(UINT32 scancode)
-{
-	for (const auto& cur : map)
-	{
-		if (cur.rdp == scancode)
-			return cur.rdp_name;
-	}
-
-	return "RDP_SCANCODE_UNKNOWN";
-}
-
-static UINT32 sdl_rdp_scancode_val(const char* scancodeName)
-{
-	for (const auto& cur : map)
-	{
-		if (strcmp(cur.rdp_name, scancodeName) == 0)
-			return cur.rdp;
-	}
-
-	return RDP_SCANCODE_UNKNOWN;
 }
 
 static UINT32 sdl_scancode_to_rdp(Uint32 scancode)
@@ -475,8 +442,8 @@ static UINT32 sdl_scancode_to_rdp(Uint32 scancode)
 
 #if defined(WITH_DEBUG_SDL_KBD_EVENTS)
 	auto code = static_cast<SDL_Scancode>(scancode);
-	WLog_DBG(TAG, "got %s [%s] -> [%s]", SDL_GetScancodeName(code), sdl_scancode_name(scancode),
-	         sdl_rdp_scancode_name(rdp));
+	WLog_DBG(TAG, "got %s [0x%08" PRIx32 "] -> [%s]", SDL_GetScancodeName(code), scancode,
+	         freerdp_keyboard_scancode_name(rdp));
 #endif
 	return rdp;
 }
@@ -536,8 +503,7 @@ BOOL sdlInput::keyboard_handle_event(const SDL_KeyboardEvent* ev)
 
 			if (ev->keysym.scancode == _hotkeyGrab)
 			{
-				_sdl->grab_kbd_enabled = !_sdl->grab_kbd_enabled;
-				keyboard_grab(ev->windowID, _sdl->grab_kbd ? SDL_FALSE : SDL_TRUE);
+				keyboard_grab(ev->windowID, !_sdl->grab_kbd);
 				return TRUE;
 			}
 			if (ev->keysym.scancode == _hotkeyDisconnect)
@@ -558,7 +524,7 @@ BOOL sdlInput::keyboard_handle_event(const SDL_KeyboardEvent* ev)
 	                                            ev->repeat, scancode);
 }
 
-BOOL sdlInput::keyboard_grab(Uint32 windowID, SDL_bool enable)
+BOOL sdlInput::keyboard_grab(Uint32 windowID, bool enable)
 {
 	auto it = _sdl->windows.find(windowID);
 	if (it == _sdl->windows.end())

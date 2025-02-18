@@ -266,9 +266,10 @@ void GetSystemTime(LPSYSTEMTIME lpSystemTime)
 	}
 }
 
-BOOL SetSystemTime(CONST SYSTEMTIME* lpSystemTime)
+BOOL SetSystemTime(WINPR_ATTR_UNUSED CONST SYSTEMTIME* lpSystemTime)
 {
 	/* TODO: Implement */
+	WLog_ERR("TODO", "TODO: Implement");
 	return FALSE;
 }
 
@@ -296,9 +297,10 @@ VOID GetLocalTime(LPSYSTEMTIME lpSystemTime)
 	}
 }
 
-BOOL SetLocalTime(CONST SYSTEMTIME* lpSystemTime)
+BOOL SetLocalTime(WINPR_ATTR_UNUSED CONST SYSTEMTIME* lpSystemTime)
 {
 	/* TODO: Implement */
+	WLog_ERR("TODO", "TODO: Implement");
 	return FALSE;
 }
 
@@ -314,10 +316,12 @@ VOID GetSystemTimeAsFileTime(LPFILETIME lpSystemTimeAsFileTime)
 	*lpSystemTimeAsFileTime = t.ft;
 }
 
-BOOL GetSystemTimeAdjustment(PDWORD lpTimeAdjustment, PDWORD lpTimeIncrement,
-                             PBOOL lpTimeAdjustmentDisabled)
+BOOL GetSystemTimeAdjustment(WINPR_ATTR_UNUSED PDWORD lpTimeAdjustment,
+                             WINPR_ATTR_UNUSED PDWORD lpTimeIncrement,
+                             WINPR_ATTR_UNUSED PBOOL lpTimeAdjustmentDisabled)
 {
 	/* TODO: Implement */
+	WLog_ERR("TODO", "TODO: Implement");
 	return FALSE;
 }
 
@@ -447,7 +451,11 @@ BOOL GetComputerNameA(LPSTR lpBuffer, LPDWORD lpnSize)
 	size_t length = strnlen(hostname, MAX_COMPUTERNAME_LENGTH);
 	const char* dot = strchr(hostname, '.');
 	if (dot)
-		length = WINPR_ASSERTING_INT_CAST(size_t, (dot - hostname));
+	{
+		const size_t dotlen = WINPR_ASSERTING_INT_CAST(size_t, (dot - hostname));
+		if (dotlen < length)
+			length = dotlen;
+	}
 
 	if ((*lpnSize <= (DWORD)length) || !lpBuffer)
 	{
@@ -953,6 +961,11 @@ BOOL IsProcessorFeaturePresent(DWORD ProcessorFeature)
 			break;
 		case PF_AVX512F_INSTRUCTIONS_AVAILABLE:
 			ret = __builtin_cpu_supports("avx512f");
+			break;
+		case PF_ARM_NEON_INSTRUCTIONS_AVAILABLE:
+#if defined(__ARM_NEON__)
+			ret = TRUE;
+#endif
 			break;
 		default:
 			WLog_WARN(TAG, "feature 0x%08" PRIx32 " check not implemented", ProcessorFeature);

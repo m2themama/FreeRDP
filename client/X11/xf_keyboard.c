@@ -103,8 +103,8 @@ static void xf_keyboard_clear(xfContext* xfc)
 	ZeroMemory(xfc->KeyboardState, sizeof(xfc->KeyboardState));
 }
 
-static BOOL xf_action_script_append(xfContext* xfc, const char* buffer, size_t size, void* user,
-                                    const char* what, const char* arg)
+static BOOL xf_action_script_append(xfContext* xfc, const char* buffer, size_t size,
+                                    WINPR_ATTR_UNUSED void* user, const char* what, const char* arg)
 {
 	WINPR_ASSERT(xfc);
 	WINPR_UNUSED(what);
@@ -113,30 +113,6 @@ static BOOL xf_action_script_append(xfContext* xfc, const char* buffer, size_t s
 	if (!buffer || (size == 0))
 		return TRUE;
 	return ArrayList_Append(xfc->keyCombinations, buffer);
-}
-
-static BOOL xf_keyboard_action_script_init(xfContext* xfc)
-{
-	wObject* obj = NULL;
-	const rdpSettings* settings = NULL;
-
-	settings = xfc->common.context.settings;
-	WINPR_ASSERT(settings);
-
-	xfc->keyCombinations = ArrayList_New(TRUE);
-
-	if (!xfc->keyCombinations)
-		return FALSE;
-
-	obj = ArrayList_Object(xfc->keyCombinations);
-	WINPR_ASSERT(obj);
-	obj->fnObjectNew = winpr_ObjectStringClone;
-	obj->fnObjectFree = winpr_ObjectStringFree;
-
-	if (!run_action_script(xfc, "key", NULL, xf_action_script_append, NULL))
-		return FALSE;
-
-	return xf_event_action_script_init(xfc);
 }
 
 static void xf_keyboard_action_script_free(xfContext* xfc)
@@ -151,6 +127,27 @@ static void xf_keyboard_action_script_free(xfContext* xfc)
 	}
 }
 
+BOOL xf_keyboard_action_script_init(xfContext* xfc)
+{
+	WINPR_ASSERT(xfc);
+
+	xf_keyboard_action_script_free(xfc);
+	xfc->keyCombinations = ArrayList_New(TRUE);
+
+	if (!xfc->keyCombinations)
+		return FALSE;
+
+	wObject* obj = ArrayList_Object(xfc->keyCombinations);
+	WINPR_ASSERT(obj);
+	obj->fnObjectNew = winpr_ObjectStringClone;
+	obj->fnObjectFree = winpr_ObjectStringFree;
+
+	if (!run_action_script(xfc, "key", NULL, xf_action_script_append, NULL))
+		return FALSE;
+
+	return xf_event_action_script_init(xfc);
+}
+
 BOOL xf_keyboard_init(xfContext* xfc)
 {
 	rdpSettings* settings = NULL;
@@ -162,16 +159,11 @@ BOOL xf_keyboard_init(xfContext* xfc)
 
 	xf_keyboard_clear(xfc);
 	xfc->KeyboardLayout = freerdp_settings_get_uint32(settings, FreeRDP_KeyboardLayout);
-	xfc->KeyboardLayout = freerdp_keyboard_init_ex(
-	    xfc->KeyboardLayout, freerdp_settings_get_string(settings, FreeRDP_KeyboardRemappingList));
+	xfc->KeyboardLayout = freerdp_keyboard_init_ex(xfc->KeyboardLayout, NULL);
 	if (!freerdp_settings_set_uint32(settings, FreeRDP_KeyboardLayout, xfc->KeyboardLayout))
 		return FALSE;
 
-	if (!xf_keyboard_update_modifier_map(xfc))
-		return FALSE;
-
-	xf_keyboard_action_script_init(xfc);
-	return TRUE;
+	return xf_keyboard_update_modifier_map(xfc);
 }
 
 void xf_keyboard_free(xfContext* xfc)
@@ -250,7 +242,8 @@ void xf_keyboard_send_key(xfContext* xfc, BOOL down, BOOL repeat, const XKeyEven
 	rdpInput* input = xfc->common.context.input;
 	WINPR_ASSERT(input);
 
-	const DWORD rdp_scancode = freerdp_keyboard_get_rdp_scancode_from_x11_keycode(event->keycode);
+	const DWORD sc = freerdp_keyboard_get_rdp_scancode_from_x11_keycode(event->keycode);
+	const DWORD rdp_scancode = freerdp_keyboard_remap_key(xfc->remap_table, sc);
 	if (rdp_scancode == RDP_SCANCODE_PAUSE && !xf_keyboard_key_pressed(xfc, XK_Control_L) &&
 	    !xf_keyboard_key_pressed(xfc, XK_Control_R))
 	{

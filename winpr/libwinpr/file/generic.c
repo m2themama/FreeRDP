@@ -22,6 +22,7 @@
 #include <winpr/config.h>
 
 #include <winpr/crt.h>
+#include <winpr/wlog.h>
 #include <winpr/string.h>
 #include <winpr/path.h>
 #include <winpr/file.h>
@@ -470,17 +471,18 @@ BOOL FlushFileBuffers(HANDLE hFile)
 	return FALSE;
 }
 
-BOOL WINAPI GetFileAttributesExA(LPCSTR lpFileName, GET_FILEEX_INFO_LEVELS fInfoLevelId,
+BOOL WINAPI GetFileAttributesExA(LPCSTR lpFileName,
+                                 WINPR_ATTR_UNUSED GET_FILEEX_INFO_LEVELS fInfoLevelId,
                                  LPVOID lpFileInformation)
 {
 	LPWIN32_FILE_ATTRIBUTE_DATA fd = lpFileInformation;
-	WIN32_FIND_DATAA findFileData;
-	HANDLE hFind = NULL;
+	WIN32_FIND_DATAA findFileData = { 0 };
 
 	if (!fd)
 		return FALSE;
 
-	if ((hFind = FindFirstFileA(lpFileName, &findFileData)) == INVALID_HANDLE_VALUE)
+	HANDLE hFind = FindFirstFileA(lpFileName, &findFileData);
+	if (hFind == INVALID_HANDLE_VALUE)
 		return FALSE;
 
 	FindClose(hFind);
@@ -514,10 +516,10 @@ BOOL WINAPI GetFileAttributesExW(LPCWSTR lpFileName, GET_FILEEX_INFO_LEVELS fInf
 
 DWORD WINAPI GetFileAttributesA(LPCSTR lpFileName)
 {
-	WIN32_FIND_DATAA findFileData;
-	HANDLE hFind = NULL;
+	WIN32_FIND_DATAA findFileData = { 0 };
+	HANDLE hFind = FindFirstFileA(lpFileName, &findFileData);
 
-	if ((hFind = FindFirstFileA(lpFileName, &findFileData)) == INVALID_HANDLE_VALUE)
+	if (hFind == INVALID_HANDLE_VALUE)
 		return INVALID_FILE_ATTRIBUTES;
 
 	FindClose(hFind);
@@ -1057,7 +1059,8 @@ HANDLE FindFirstFileW(LPCWSTR lpFileName, LPWIN32_FIND_DATAW lpFindFileData)
 	LPSTR utfFileName = NULL;
 	HANDLE h = NULL;
 	if (!lpFileName)
-		return FALSE;
+		return INVALID_HANDLE_VALUE;
+
 	LPWIN32_FIND_DATAA fd = (LPWIN32_FIND_DATAA)calloc(1, sizeof(WIN32_FIND_DATAA));
 
 	if (!fd)
@@ -1093,15 +1096,25 @@ out:
 	return h;
 }
 
-HANDLE FindFirstFileExA(LPCSTR lpFileName, FINDEX_INFO_LEVELS fInfoLevelId, LPVOID lpFindFileData,
-                        FINDEX_SEARCH_OPS fSearchOp, LPVOID lpSearchFilter, DWORD dwAdditionalFlags)
+HANDLE FindFirstFileExA(WINPR_ATTR_UNUSED LPCSTR lpFileName,
+                        WINPR_ATTR_UNUSED FINDEX_INFO_LEVELS fInfoLevelId,
+                        WINPR_ATTR_UNUSED LPVOID lpFindFileData,
+                        WINPR_ATTR_UNUSED FINDEX_SEARCH_OPS fSearchOp,
+                        WINPR_ATTR_UNUSED LPVOID lpSearchFilter,
+                        WINPR_ATTR_UNUSED DWORD dwAdditionalFlags)
 {
+	WLog_ERR("TODO", "TODO: Implement");
 	return INVALID_HANDLE_VALUE;
 }
 
-HANDLE FindFirstFileExW(LPCWSTR lpFileName, FINDEX_INFO_LEVELS fInfoLevelId, LPVOID lpFindFileData,
-                        FINDEX_SEARCH_OPS fSearchOp, LPVOID lpSearchFilter, DWORD dwAdditionalFlags)
+HANDLE FindFirstFileExW(WINPR_ATTR_UNUSED LPCWSTR lpFileName,
+                        WINPR_ATTR_UNUSED FINDEX_INFO_LEVELS fInfoLevelId,
+                        WINPR_ATTR_UNUSED LPVOID lpFindFileData,
+                        WINPR_ATTR_UNUSED FINDEX_SEARCH_OPS fSearchOp,
+                        WINPR_ATTR_UNUSED LPVOID lpSearchFilter,
+                        WINPR_ATTR_UNUSED DWORD dwAdditionalFlags)
 {
+	WLog_ERR("TODO", "TODO: Implement");
 	return INVALID_HANDLE_VALUE;
 }
 
@@ -1217,11 +1230,13 @@ BOOL FindClose(HANDLE hFindFile)
 	if (pFileSearch->pDir)
 		closedir(pFileSearch->pDir);
 
+	// NOLINTNEXTLINE(clang-analyzer-unix.Malloc)
 	free(pFileSearch);
 	return TRUE;
 }
 
-BOOL CreateDirectoryA(LPCSTR lpPathName, LPSECURITY_ATTRIBUTES lpSecurityAttributes)
+BOOL CreateDirectoryA(LPCSTR lpPathName,
+                      WINPR_ATTR_UNUSED LPSECURITY_ATTRIBUTES lpSecurityAttributes)
 {
 	if (!mkdir(lpPathName, S_IRUSR | S_IWUSR | S_IXUSR))
 		return TRUE;

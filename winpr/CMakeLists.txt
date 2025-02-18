@@ -26,10 +26,7 @@ if(NOT FREERDP_UNIFIED_BUILD)
   endif()
   project(WinPR LANGUAGES C)
 
-  set(CMAKE_C_STANDARD 11)
-  set(CMAKE_C_STANDARD_REQUIRED ON)
-  set(CMAKE_C_EXTENSIONS ON)
-
+  include(ProjectCStandard)
   include(CommonConfigOptions)
   include(ConfigOptions)
 
@@ -39,19 +36,7 @@ if(NOT FREERDP_UNIFIED_BUILD)
   endif()
 
   # Default to build shared libs
-  option(EXPORT_ALL_SYMBOLS "Export all symbols form library" OFF)
-
-  if(EXPORT_ALL_SYMBOLS)
-    #		set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
-    add_compile_definitions(EXPORT_ALL_SYMBOLS)
-  endif()
-
-  if(CMAKE_COMPILER_IS_GNUCC)
-    if(NOT EXPORT_ALL_SYMBOLS)
-      message(STATUS "GCC default symbol visibility: hidden")
-      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")
-    endif()
-  endif()
+  include(ExportAllSymbols)
   if(WITH_DEBUG_ALL)
     message(
       WARNING
@@ -146,7 +131,7 @@ endif()
 
 # Soname versioning
 set(VERSION_REGEX "^(.*)([0-9]+)\\.([0-9]+)\\.([0-9]+)-?(.*)")
-set(RAW_VERSION_STRING "3.10.4-dev0")
+set(RAW_VERSION_STRING "3.12.1-dev0")
 if(EXISTS "${PROJECT_SOURCE_DIR}/.source_tag")
   file(READ ${PROJECT_SOURCE_DIR}/.source_tag RAW_VERSION_STRING)
 elseif(USE_VERSION_FROM_GIT_TAG)

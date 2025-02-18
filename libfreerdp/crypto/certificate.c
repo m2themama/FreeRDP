@@ -471,6 +471,8 @@ static void certificate_free_x509_certificate_chain(rdpX509CertChain* x509_cert_
 	}
 
 	free(x509_cert_chain->array);
+	x509_cert_chain->array = NULL;
+	x509_cert_chain->count = 0;
 }
 
 #if defined(OPENSSL_VERSION_MAJOR) && (OPENSSL_VERSION_MAJOR >= 3)
@@ -637,7 +639,8 @@ fail:
 	return rc;
 }
 
-static BOOL certificate_process_server_public_key(rdpCertificate* cert, wStream* s, UINT32 length)
+static BOOL certificate_process_server_public_key(rdpCertificate* cert, wStream* s,
+                                                  WINPR_ATTR_UNUSED UINT32 length)
 {
 	char magic[sizeof(rsa_magic)] = { 0 };
 	UINT32 keylen = 0;

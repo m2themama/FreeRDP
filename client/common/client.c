@@ -295,8 +295,7 @@ int freerdp_client_settings_parse_command_line(rdpSettings* settings, int argc, 
 
 int freerdp_client_settings_parse_command_line_ex(
     rdpSettings* settings, int argc, char** argv, BOOL allowUnknown, COMMAND_LINE_ARGUMENT_A* args,
-    size_t count, int (*handle_option)(const COMMAND_LINE_ARGUMENT_A* arg, void* custom),
-    void* handle_userdata)
+    size_t count, freerdp_command_line_handle_option_t handle_option, void* handle_userdata)
 {
 	int status = 0;
 
@@ -573,8 +572,8 @@ BOOL client_cli_authenticate_ex(freerdp* instance, char** username, char** passw
 	return client_cli_authenticate_raw(instance, reason, username, password, domain);
 }
 
-BOOL client_cli_choose_smartcard(freerdp* instance, SmartcardCertInfo** cert_list, DWORD count,
-                                 DWORD* choice, BOOL gateway)
+BOOL client_cli_choose_smartcard(WINPR_ATTR_UNUSED freerdp* instance, SmartcardCertInfo** cert_list,
+                                 DWORD count, DWORD* choice, BOOL gateway)
 {
 	unsigned long answer = 0;
 	char* p = NULL;

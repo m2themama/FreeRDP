@@ -364,6 +364,7 @@ static BOOL nla_client_setup_identity(rdpNla* nla)
 	if (!settings->Username)
 	{
 		sspi_FreeAuthIdentity(nla->identity);
+		free(nla->identity);
 		nla->identity = NULL;
 	}
 	else if (settings->SmartcardLogon)
@@ -1152,7 +1153,8 @@ static BOOL nla_read_TSCspDataDetail(WinPrAsn1Decoder* dec, rdpSettings* setting
 	return set_creds_octetstring_to_settings(dec, 4, TRUE, FreeRDP_CspName, settings);
 }
 
-static BOOL nla_read_KERB_TICKET_LOGON(rdpNla* nla, wStream* s, KERB_TICKET_LOGON* ticket)
+static BOOL nla_read_KERB_TICKET_LOGON(WINPR_ATTR_UNUSED rdpNla* nla, wStream* s,
+                                       KERB_TICKET_LOGON* ticket)
 {
 	WINPR_ASSERT(nla);
 
@@ -1201,7 +1203,7 @@ typedef enum
 	RCG_TYPE_NTLM
 } RemoteGuardPackageCredType;
 
-static BOOL nla_read_TSRemoteGuardPackageCred(rdpNla* nla, WinPrAsn1Decoder* dec,
+static BOOL nla_read_TSRemoteGuardPackageCred(WINPR_ATTR_UNUSED rdpNla* nla, WinPrAsn1Decoder* dec,
                                               RemoteGuardPackageCredType* credsType,
                                               wStream* payload)
 {

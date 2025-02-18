@@ -72,6 +72,7 @@ const char* freerdp_passphrase_read(rdpContext* context, const char* prompt, cha
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <termios.h>
 #include <unistd.h>
 #include <freerdp/utils/signal.h>
@@ -118,7 +119,7 @@ static int wait_for_fd(int fd, int timeout)
 	return status;
 }
 
-static void replace_char(char* buffer, size_t buffer_len, const char* toreplace)
+static void replace_char(char* buffer, WINPR_ATTR_UNUSED size_t buffer_len, const char* toreplace)
 {
 	while (*toreplace != '\0')
 	{
@@ -206,15 +207,13 @@ static const char* freerdp_passphrase_read_tty(rdpContext* context, const char* 
 	}
 
 	if (terminal_fildes != STDIN_FILENO)
-	{
-		if (fclose(fp) == -1)
-			goto error;
-	}
+		(void)fclose(fp);
 
 	return buf;
 
 error:
 {
+	// NOLINTNEXTLINE(clang-analyzer-unix.Stream)
 	int saved_errno = errno;
 	if (terminal_needs_reset)
 		(void)tcsetattr(terminal_fildes, TCSAFLUSH, &orig_flags);
@@ -224,9 +223,11 @@ error:
 		if (fp)
 			(void)fclose(fp);
 	}
+	// NOLINTNEXTLINE(clang-analyzer-unix.Stream)
 	errno = saved_errno;
-	return NULL;
 }
+
+	return NULL;
 }
 
 static const char* freerdp_passphrase_read_askpass(const char* prompt, char* buf, size_t bufsiz,

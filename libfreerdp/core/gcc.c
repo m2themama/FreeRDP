@@ -1117,7 +1117,7 @@ static BOOL updateEarlyClientCaps(rdpSettings* settings, UINT32 earlyCapabilityF
 }
 
 static BOOL updateEarlyServerCaps(rdpSettings* settings, UINT32 earlyCapabilityFlags,
-                                  UINT32 connectionType)
+                                  WINPR_ATTR_UNUSED UINT32 connectionType)
 {
 	WINPR_ASSERT(settings);
 
@@ -2145,10 +2145,19 @@ BOOL gcc_read_client_monitor_data(wStream* s, rdpMcs* mcs)
 		const INT32 right = Stream_Get_INT32(s);   /* right */
 		const INT32 bottom = Stream_Get_INT32(s);  /* bottom */
 		const UINT32 flags = Stream_Get_UINT32(s); /* flags */
+
+		if ((left > right) || (bottom > top))
+			return FALSE;
+
+		const INT64 w = right - left;
+		const INT64 h = bottom - top;
+		if ((w >= INT32_MAX) || (h >= INT32_MAX) || (w < 0) || (h < 0))
+			return FALSE;
+
 		current->x = left;
 		current->y = top;
-		current->width = right - left + 1;
-		current->height = bottom - top + 1;
+		current->width = WINPR_ASSERTING_INT_CAST(int32_t, w + 1);
+		current->height = WINPR_ASSERTING_INT_CAST(int32_t, h + 1);
 		current->is_primary = (flags & MONITOR_PRIMARY) ? TRUE : FALSE;
 	}
 

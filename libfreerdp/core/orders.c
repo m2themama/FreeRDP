@@ -47,34 +47,68 @@
 /* Exposed type definitions in public headers have the wrong type.
  * assert to the correct types internally to trigger the ci checkers on wrong data passed */
 #define get_checked_uint16(value) get_checked_uint16_int((value), __FILE__, __func__, __LINE__)
-static inline UINT16 get_checked_uint16_int(UINT32 value, const char* file, const char* fkt,
-                                            size_t line)
+static inline UINT16 get_checked_uint16_int(UINT32 value, WINPR_ATTR_UNUSED const char* file,
+                                            WINPR_ATTR_UNUSED const char* fkt,
+                                            WINPR_ATTR_UNUSED size_t line)
 {
 	WINPR_ASSERT_AT(value <= UINT16_MAX, file, fkt, line);
 	return (UINT16)value;
 }
 
 #define get_checked_uint8(value) get_checked_uint8_int((value), __FILE__, __func__, __LINE__)
-static inline UINT8 get_checked_uint8_int(UINT32 value, const char* file, const char* fkt,
-                                          size_t line)
+static inline UINT8 get_checked_uint8_int(UINT32 value, WINPR_ATTR_UNUSED const char* file,
+                                          WINPR_ATTR_UNUSED const char* fkt,
+                                          WINPR_ATTR_UNUSED size_t line)
 {
 	WINPR_ASSERT_AT(value <= UINT8_MAX, file, fkt, line);
 	return (UINT8)value;
 }
 
 #define get_checked_int16(value) get_checked_int16_int((value), __FILE__, __func__, __LINE__)
-static inline INT16 get_checked_int16_int(INT32 value, const char* file, const char* fkt,
-                                          size_t line)
+static inline INT16 get_checked_int16_int(INT32 value, WINPR_ATTR_UNUSED const char* file,
+                                          WINPR_ATTR_UNUSED const char* fkt,
+                                          WINPR_ATTR_UNUSED size_t line)
 {
 	WINPR_ASSERT_AT(value <= INT16_MAX, file, fkt, line);
 	WINPR_ASSERT_AT(value >= INT16_MIN, file, fkt, line);
 	return (INT16)value;
 }
 
+#define check_val_fits_int16(value) check_val_fits_int16_int((value), __FILE__, __func__, __LINE__)
+static inline BOOL check_val_fits_int16_int(INT32 value, WINPR_ATTR_UNUSED const char* file,
+                                            WINPR_ATTR_UNUSED const char* fkt,
+                                            WINPR_ATTR_UNUSED size_t line)
+{
+	const DWORD level = WLOG_WARN;
+	static wLog* log = NULL;
+	if (!log)
+		log = WLog_Get(TAG);
+
+	if (value < INT16_MIN)
+	{
+		if (WLog_IsLevelActive(log, level))
+			WLog_PrintMessage(log, WLOG_MESSAGE_TEXT, level, line, file, fkt,
+			                  "value %" PRId32 " < %d", INT16_MIN);
+		return FALSE;
+	}
+
+	if (value > INT16_MAX)
+	{
+		if (WLog_IsLevelActive(log, level))
+			WLog_PrintMessage(log, WLOG_MESSAGE_TEXT, level, line, file, fkt,
+			                  "value %" PRId32 " > %d", INT16_MAX);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
 #define gdi_rob3_code_string_checked(value) \
 	gdi_rob3_code_string_checked_int((value), __FILE__, __func__, __LINE__)
-static inline const char* gdi_rob3_code_string_checked_int(UINT32 rob, const char* file,
-                                                           const char* fkt, size_t line)
+static inline const char* gdi_rob3_code_string_checked_int(UINT32 rob,
+                                                           WINPR_ATTR_UNUSED const char* file,
+                                                           WINPR_ATTR_UNUSED const char* fkt,
+                                                           WINPR_ATTR_UNUSED size_t line)
 {
 	WINPR_ASSERT_AT((rob) <= UINT8_MAX, file, fkt, line);
 	return gdi_rop3_code_string((BYTE)rob);
@@ -82,8 +116,9 @@ static inline const char* gdi_rob3_code_string_checked_int(UINT32 rob, const cha
 
 #define gdi_rop3_code_checked(value) \
 	gdi_rop3_code_checked_int((value), __FILE__, __func__, __LINE__)
-static inline DWORD gdi_rop3_code_checked_int(UINT32 code, const char* file, const char* fkt,
-                                              size_t line)
+static inline DWORD gdi_rop3_code_checked_int(UINT32 code, WINPR_ATTR_UNUSED const char* file,
+                                              WINPR_ATTR_UNUSED const char* fkt,
+                                              WINPR_ATTR_UNUSED size_t line)
 {
 	WINPR_ASSERT_AT(code <= UINT8_MAX, file, fkt, line);
 	return gdi_rop3_code((UINT8)code);
@@ -866,7 +901,7 @@ static INLINE BOOL update_read_delta(wStream* s, INT32* value)
 	Stream_Read_UINT8(s, byte);
 
 	if (byte & 0x40)
-		uvalue = (byte | ((~0x3F) & 0xFF));
+		uvalue = WINPR_CXX_COMPAT_CAST(UINT32, (byte | ~0x3F));
 	else
 		uvalue = (byte & 0x3F);
 
@@ -1089,7 +1124,7 @@ static INLINE BOOL update_read_delta_rects(wStream* s, DELTA_RECT* rectangles, c
 }
 
 static INLINE BOOL update_read_delta_points(wStream* s, DELTA_POINT** points, UINT32 number,
-                                            INT16 x, INT16 y)
+                                            WINPR_ATTR_UNUSED INT16 x, WINPR_ATTR_UNUSED INT16 y)
 {
 	BYTE flags = 0;
 	BYTE* zeroBits = NULL;
@@ -1842,6 +1877,9 @@ static BOOL update_read_polyline_order(const char* orderName, wStream* s,
 
 		Stream_Read_UINT8(s, polyline->cbData);
 
+		if (!check_val_fits_int16(polyline->xStart) || !check_val_fits_int16(polyline->yStart))
+			return FALSE;
+
 		polyline->numDeltaEntries = new_num;
 		return update_read_delta_points(s, &polyline->points, polyline->numDeltaEntries,
 		                                get_checked_int16(polyline->xStart),
@@ -2188,6 +2226,7 @@ static BOOL update_read_fast_glyph_order(const char* orderName, wStream* s,
 
 	return TRUE;
 }
+
 static BOOL update_read_polygon_sc_order(const char* orderName, wStream* s,
                                          const ORDER_INFO* orderInfo, POLYGON_SC_ORDER* polygon_sc)
 {
@@ -2209,6 +2248,9 @@ static BOOL update_read_polygon_sc_order(const char* orderName, wStream* s,
 			return FALSE;
 
 		Stream_Read_UINT8(s, polygon_sc->cbData);
+
+		if (!check_val_fits_int16(polygon_sc->xStart) || !check_val_fits_int16(polygon_sc->yStart))
+			return FALSE;
 
 		polygon_sc->numPoints = num;
 		return update_read_delta_points(s, &polygon_sc->points, polygon_sc->numPoints,
@@ -2253,6 +2295,9 @@ static BOOL update_read_polygon_cb_order(const char* orderName, wStream* s,
 
 		Stream_Read_UINT8(s, polygon_cb->cbData);
 		polygon_cb->numPoints = num;
+
+		if (!check_val_fits_int16(polygon_cb->xStart) || !check_val_fits_int16(polygon_cb->yStart))
+			return FALSE;
 
 		if (!update_read_delta_points(s, &polygon_cb->points, polygon_cb->numPoints,
 		                              get_checked_int16(polygon_cb->xStart),
@@ -2677,7 +2722,7 @@ fail:
 }
 
 size_t update_approximate_cache_bitmap_v3_order(CACHE_BITMAP_V3_ORDER* cache_bitmap_v3,
-                                                UINT16* flags)
+                                                WINPR_ATTR_UNUSED UINT16* flags)
 {
 	BITMAP_DATA_EX* bitmapData = &cache_bitmap_v3->bitmapData;
 	return 64 + bitmapData->length;
@@ -2717,7 +2762,7 @@ BOOL update_write_cache_bitmap_v3_order(wStream* s, CACHE_BITMAP_V3_ORDER* cache
 
 WINPR_ATTR_MALLOC(free_cache_color_table_order, 2)
 static CACHE_COLOR_TABLE_ORDER* update_read_cache_color_table_order(rdpUpdate* update, wStream* s,
-                                                                    UINT16 flags)
+                                                                    WINPR_ATTR_UNUSED UINT16 flags)
 {
 	UINT32* colorTable = NULL;
 	CACHE_COLOR_TABLE_ORDER* cache_color_table = calloc(1, sizeof(CACHE_COLOR_TABLE_ORDER));
@@ -3034,11 +3079,13 @@ static BOOL update_decompress_brush(wStream* s, BYTE* output, size_t outSize, BY
 
 	return TRUE;
 }
-static BOOL update_compress_brush(wStream* s, const BYTE* input, BYTE bpp)
+static BOOL update_compress_brush(WINPR_ATTR_UNUSED wStream* s, WINPR_ATTR_UNUSED const BYTE* input,
+                                  WINPR_ATTR_UNUSED BYTE bpp)
 {
 	return FALSE;
 }
-static CACHE_BRUSH_ORDER* update_read_cache_brush_order(rdpUpdate* update, wStream* s, UINT16 flags)
+static CACHE_BRUSH_ORDER* update_read_cache_brush_order(rdpUpdate* update, wStream* s,
+                                                        WINPR_ATTR_UNUSED UINT16 flags)
 {
 	BOOL rc = 0;
 	BYTE iBitmapFormat = 0;
@@ -3315,7 +3362,8 @@ static BOOL update_read_switch_surface_order(wStream* s, SWITCH_SURFACE_ORDER* s
 	Stream_Read_UINT16(s, switch_surface->bitmapId); /* bitmapId (2 bytes) */
 	return TRUE;
 }
-size_t update_approximate_switch_surface_order(const SWITCH_SURFACE_ORDER* switch_surface)
+size_t update_approximate_switch_surface_order(
+    WINPR_ATTR_UNUSED const SWITCH_SURFACE_ORDER* switch_surface)
 {
 	return 2;
 }
@@ -3515,7 +3563,8 @@ static BOOL update_read_field_flags(wStream* s, UINT32* fieldFlags, BYTE flags, 
 
 	return TRUE;
 }
-BOOL update_write_field_flags(wStream* s, UINT32 fieldFlags, BYTE flags, BYTE fieldBytes)
+BOOL update_write_field_flags(wStream* s, UINT32 fieldFlags, WINPR_ATTR_UNUSED BYTE flags,
+                              BYTE fieldBytes)
 {
 	BYTE byte = 0;
 
@@ -4054,7 +4103,7 @@ static BOOL update_recv_primary_order(rdpUpdate* update, wStream* s, BYTE flags)
 	return rc;
 }
 
-static BOOL update_recv_secondary_order(rdpUpdate* update, wStream* s, BYTE flags)
+static BOOL update_recv_secondary_order(rdpUpdate* update, wStream* s, WINPR_ATTR_UNUSED BYTE flags)
 {
 	BOOL rc = FALSE;
 	size_t start = 0;

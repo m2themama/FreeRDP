@@ -14,15 +14,15 @@ jobs:
       matrix:
         include:
           - arch: armv6
-            distro: bullseye
+            distro: bookworm
           - arch: armv7
-            distro: bullseye
+            distro: bookworm
           - arch: aarch64
-            distro: bullseye
+            distro: bookworm
           - arch: s390x
-            distro: bullseye
+            distro: bookworm
           - arch: ppc64le
-            distro: bullseye
+            distro: bookworm
           - arch: riscv64
             distro: ubuntu22.04
     steps:
@@ -88,7 +88,7 @@ jobs:
             apt-get satisfy -q -y "libwebkit2gtk-4.0-dev | libwebkit2gtk-4.1-dev"
           run: |
             cmake -GNinja \
-              -C ci/cmake-preloads/config-linux-all.txt \
+              -C ci/cmake-preloads/config-linux-alt-arch.txt \
               -B ci-build \
               -S . \
               -DCMAKE_INSTALL_PREFIX=/tmp/ci-test \

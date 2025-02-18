@@ -1062,7 +1062,7 @@ static const char* findCardByAtr(LPCBYTE pbAtr)
 	return NULL;
 }
 
-static LONG WINAPI PCSC_SCardListCardsA(SCARDCONTEXT hContext, LPCBYTE pbAtr,
+static LONG WINAPI PCSC_SCardListCardsA(WINPR_ATTR_UNUSED SCARDCONTEXT hContext, LPCBYTE pbAtr,
                                         LPCGUID rgquidInterfaces, DWORD cguidInterfaceCount,
                                         CHAR* mszCards, LPDWORD pcchCards)
 {
@@ -1115,7 +1115,7 @@ static LONG WINAPI PCSC_SCardListCardsA(SCARDCONTEXT hContext, LPCBYTE pbAtr,
 	return SCARD_S_SUCCESS;
 }
 
-static LONG WINAPI PCSC_SCardListCardsW(SCARDCONTEXT hContext, LPCBYTE pbAtr,
+static LONG WINAPI PCSC_SCardListCardsW(WINPR_ATTR_UNUSED SCARDCONTEXT hContext, LPCBYTE pbAtr,
                                         LPCGUID rgquidInterfaces, DWORD cguidInterfaceCount,
                                         WCHAR* mszCards, LPDWORD pcchCards)
 {
@@ -2961,27 +2961,27 @@ static LONG WINAPI PCSC_SCardWriteCacheW(SCARDCONTEXT hContext, UUID* CardIdenti
 	return SCARD_S_SUCCESS;
 }
 
-static LONG WINAPI
-PCSC_SCardGetReaderIconA(SCARDCONTEXT hContext, LPCSTR szReaderName,
-                         LPBYTE pbIcon /* NOLINT(readability-non-const-parameter) */,
-                         LPDWORD pcbIcon /* NOLINT(readability-non-const-parameter) */)
+static LONG WINAPI PCSC_SCardGetReaderIconA(
+    SCARDCONTEXT hContext, LPCSTR szReaderName,
+    LPBYTE pbIcon /* NOLINT(readability-non-const-parameter) */, LPDWORD pcbIcon)
 {
 	WINPR_UNUSED(hContext);
 	WINPR_UNUSED(szReaderName);
 	WINPR_UNUSED(pbIcon);
-	WINPR_UNUSED(pcbIcon);
+	WINPR_ASSERT(pcbIcon);
+	*pcbIcon = 0;
 	return SCARD_E_UNSUPPORTED_FEATURE;
 }
 
-static LONG WINAPI
-PCSC_SCardGetReaderIconW(SCARDCONTEXT hContext, LPCWSTR szReaderName,
-                         LPBYTE pbIcon /* NOLINT(readability-non-const-parameter) */,
-                         LPDWORD pcbIcon /* NOLINT(readability-non-const-parameter) */)
+static LONG WINAPI PCSC_SCardGetReaderIconW(
+    SCARDCONTEXT hContext, LPCWSTR szReaderName,
+    LPBYTE pbIcon /* NOLINT(readability-non-const-parameter) */, LPDWORD pcbIcon)
 {
 	WINPR_UNUSED(hContext);
 	WINPR_UNUSED(szReaderName);
 	WINPR_UNUSED(pbIcon);
-	WINPR_UNUSED(pcbIcon);
+	WINPR_ASSERT(pcbIcon);
+	*pcbIcon = 0;
 	return SCARD_E_UNSUPPORTED_FEATURE;
 }
 

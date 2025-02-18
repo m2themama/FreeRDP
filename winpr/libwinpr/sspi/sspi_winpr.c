@@ -347,7 +347,7 @@ static BOOL copy(WCHAR** dst, ULONG* dstLen, const WCHAR* what, size_t len)
 		return FALSE;
 
 	memcpy(*dst, what, len * sizeof(WCHAR));
-	*dstLen = (UINT32)len;
+	*dstLen = WINPR_ASSERTING_INT_CAST(UINT32, len);
 	return TRUE;
 }
 
@@ -975,7 +975,8 @@ static BOOL WINPR_init(void)
 	return TRUE;
 }
 
-static BOOL CALLBACK sspi_init(PINIT_ONCE InitOnce, PVOID Parameter, PVOID* Context)
+static BOOL CALLBACK sspi_init(WINPR_ATTR_UNUSED PINIT_ONCE InitOnce,
+                               WINPR_ATTR_UNUSED PVOID Parameter, WINPR_ATTR_UNUSED PVOID* Context)
 {
 	winpr_InitializeSSL(WINPR_SSL_INIT_DEFAULT);
 	sspi_ContextBufferAllocTableNew();

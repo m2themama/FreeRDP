@@ -88,7 +88,6 @@ static int freerdp_connect_begin(freerdp* instance)
 	rdpRdp* rdp = NULL;
 	BOOL status = TRUE;
 	rdpSettings* settings = NULL;
-	UINT32 KeyboardLayout = 0;
 
 	if (!instance)
 		return -1;
@@ -131,7 +130,7 @@ static int freerdp_connect_begin(freerdp* instance)
 		status = utils_reload_channels(instance->context);
 
 	const UINT32 cp = freerdp_settings_get_uint32(settings, FreeRDP_KeyboardCodePage);
-	KeyboardLayout = freerdp_get_keyboard_default_layout_for_locale(cp);
+	int64_t KeyboardLayout = freerdp_get_keyboard_default_layout_for_locale(cp);
 	if (KeyboardLayout == 0)
 		KeyboardLayout = freerdp_settings_get_uint32(settings, FreeRDP_KeyboardLayout);
 
@@ -315,11 +314,17 @@ BOOL freerdp_abort_connect_context(rdpContext* context)
 
 	freerdp_set_last_error_if_not(context, FREERDP_ERROR_CONNECT_CANCELLED);
 
+	/* Try to send a [MS-RDPBCGR] 1.3.1.4.1 User-Initiated on Client PDU, we don't care about
+	 * success */
+	if (context->rdp && context->rdp->mcs)
+		(void)mcs_send_disconnect_provider_ultimatum(context->rdp->mcs,
+		                                             Disconnect_Ultimatum_user_requested);
 	return utils_abort_connect(context->rdp);
 }
 
 #if defined(WITH_FREERDP_DEPRECATED)
-BOOL freerdp_get_fds(freerdp* instance, void** rfds, int* rcount, void** wfds, int* wcount)
+BOOL freerdp_get_fds(freerdp* instance, void** rfds, int* rcount, WINPR_ATTR_UNUSED void** wfds,
+                     WINPR_ATTR_UNUSED int* wcount)
 {
 	rdpRdp* rdp = NULL;
 
@@ -1459,4 +1464,31 @@ BOOL freerdp_is_valid_mcs_create_response(const BYTE* data, size_t size)
 	BOOL result = mcs_recv_connect_response(mcs, s);
 	test_mcs_free(mcs);
 	return result;
+}
+
+BOOL freerdp_persist_credentials(rdpContext* context)
+{
+	if (!context)
+		return FALSE;
+	WINPR_ASSERT(context->rdp);
+	return utils_persist_credentials(context->rdp->originalSettings, context->rdp->settings);
+}
+
+const char* freerdp_disconnect_reason_string(int reason)
+{
+	switch (reason)
+	{
+		case Disconnect_Ultimatum_domain_disconnected:
+			return "rn-domain-disconnected";
+		case Disconnect_Ultimatum_provider_initiated:
+			return "rn-provider-initiated";
+		case Disconnect_Ultimatum_token_purged:
+			return "rn-token-purged";
+		case Disconnect_Ultimatum_user_requested:
+			return "rn-user-requested";
+		case Disconnect_Ultimatum_channel_purged:
+			return "rn-channel-purged";
+		default:
+			return "rn-unknown";
+	}
 }

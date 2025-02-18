@@ -23,30 +23,22 @@ set(UWAC_VERSION "${UWAC_VERSION_MAJOR}.${UWAC_VERSION_MINOR}.${UWAC_VERSION_REV
 set(UWAC_VERSION_FULL "${UWAC_VERSION}")
 set(UWAC_API_VERSION "${UWAC_VERSION_MAJOR}")
 
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/)
 if(NOT FREERDP_UNIFIED_BUILD)
   cmake_minimum_required(VERSION 3.13)
   project(uwac VERSION ${UWAC_VERSION} LANGUAGES C)
 
-  set(CMAKE_C_STANDARD 11)
-  set(CMAKE_C_STANDARD_REQUIRED ON)
-  set(CMAKE_C_EXTENSIONS ON)
+  include(ProjectCStandard)
 
-  option(EXPORT_ALL_SYMBOLS "Export all symbols form library" OFF)
   option(BUILD_TESTING_INTERNAL "Build library unit tests" ON)
 
-  if(CMAKE_COMPILER_IS_GNUCC)
-    if(NOT EXPORT_ALL_SYMBOLS)
-      message(STATUS "GCC default symbol visibility: hidden")
-      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")
-    endif()
-  endif()
+  include(ExportAllSymbols)
 endif()
 
-option(UWAC_FORCE_STATIC_BUILD "Force UWAC to be built as static library (recommended)" OFF)
+option(UWAC_FORCE_STATIC_BUILD "Force UWAC to be build as static library (recommended)" OFF)
 option(UWAC_HAVE_PIXMAN_REGION "Use PIXMAN or FreeRDP for region calculations" "NOT FREERDP_UNIFIED_BUILD")
 
 # Include our extra modules
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/)
 include(CommonConfigOptions)
 
 include(CheckFunctionExists)

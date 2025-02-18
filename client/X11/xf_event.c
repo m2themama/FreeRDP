@@ -174,8 +174,8 @@ const char* x11_event_string(int event)
 	} while (0)
 #endif
 
-static BOOL xf_action_script_append(xfContext* xfc, const char* buffer, size_t size, void* user,
-                                    const char* what, const char* arg)
+static BOOL xf_action_script_append(xfContext* xfc, const char* buffer, size_t size,
+                                    WINPR_ATTR_UNUSED void* user, const char* what, const char* arg)
 {
 	WINPR_ASSERT(xfc);
 	WINPR_UNUSED(what);
@@ -194,28 +194,21 @@ static BOOL xf_action_script_append(xfContext* xfc, const char* buffer, size_t s
 
 BOOL xf_event_action_script_init(xfContext* xfc)
 {
-	wObject* obj = NULL;
-	const rdpSettings* settings = NULL;
-
 	WINPR_ASSERT(xfc);
 
-	settings = xfc->common.context.settings;
-	WINPR_ASSERT(settings);
+	xf_event_action_script_free(xfc);
 
 	xfc->xevents = ArrayList_New(TRUE);
 
 	if (!xfc->xevents)
 		return FALSE;
 
-	obj = ArrayList_Object(xfc->xevents);
+	wObject* obj = ArrayList_Object(xfc->xevents);
 	WINPR_ASSERT(obj);
 	obj->fnObjectNew = winpr_ObjectStringClone;
 	obj->fnObjectFree = winpr_ObjectStringFree;
 
-	if (!run_action_script(xfc, "xevent", NULL, xf_action_script_append, NULL))
-		return FALSE;
-
-	return TRUE;
+	return run_action_script(xfc, "xevent", NULL, xf_action_script_append, NULL);
 }
 
 void xf_event_action_script_free(xfContext* xfc)
@@ -308,9 +301,7 @@ static BOOL xf_event_execute_action_script(xfContext* xfc, const XEvent* event)
 	char arg[2048] = { 0 };
 	(void)_snprintf(command, sizeof(command), "xevent %s", xeventName);
 	(void)_snprintf(arg, sizeof(arg), "%lu", (unsigned long)xfc->window->handle);
-	if (!run_action_script(xfc, command, arg, action_script_run, NULL))
-		return FALSE;
-	return TRUE;
+	return run_action_script(xfc, command, arg, action_script_run, NULL);
 }
 
 void xf_adjust_coordinates_to_screen(xfContext* xfc, UINT32* x, UINT32* y)
@@ -465,7 +456,8 @@ BOOL xf_generic_MotionNotify(xfContext* xfc, int x, int y, int state, Window win
 	return TRUE;
 }
 
-BOOL xf_generic_RawMotionNotify(xfContext* xfc, int x, int y, Window window, BOOL app)
+BOOL xf_generic_RawMotionNotify(xfContext* xfc, int x, int y, WINPR_ATTR_UNUSED Window window,
+                                BOOL app)
 {
 	WINPR_ASSERT(xfc);
 
@@ -729,10 +721,24 @@ static BOOL xf_event_MappingNotify(xfContext* xfc, const XMappingEvent* event, B
 {
 	WINPR_UNUSED(app);
 
-	if (event->request == MappingModifier)
-		return xf_keyboard_update_modifier_map(xfc);
-
-	return TRUE;
+	switch (event->request)
+	{
+		case MappingModifier:
+			return xf_keyboard_update_modifier_map(xfc);
+		case MappingKeyboard:
+			WLog_VRB(TAG, "[%d] MappingKeyboard", event->request);
+			return xf_keyboard_init(xfc);
+		case MappingPointer:
+			WLog_VRB(TAG, "[%d] MappingPointer", event->request);
+			xf_button_map_init(xfc);
+			return TRUE;
+		default:
+			WLog_WARN(TAG,
+			          "[%d] Unsupported MappingNotify::request, must be one "
+			          "of[MappingModifier(%d), MappingKeyboard(%d), MappingPointer(%d)]",
+			          event->request, MappingModifier, MappingKeyboard, MappingPointer);
+			return FALSE;
+	}
 }
 
 static BOOL xf_event_ClientMessage(xfContext* xfc, const XClientMessageEvent* event, BOOL app)
@@ -1210,7 +1216,24 @@ BOOL xf_event_process(freerdp* instance, const XEvent* event)
 		}
 
 		if (xf_floatbar_is_locked(floatbar))
-			return TRUE;
+		{
+			/* Filter input events, floatbar is locked do not forward anything to the session */
+			switch (event->type)
+			{
+				case MotionNotify:
+				case ButtonPress:
+				case ButtonRelease:
+				case KeyPress:
+				case KeyRelease:
+				case FocusIn:
+				case FocusOut:
+				case EnterNotify:
+				case LeaveNotify:
+					return TRUE;
+				default:
+					break;
+			}
+		}
 	}
 
 	xf_event_execute_action_script(xfc, event);

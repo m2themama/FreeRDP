@@ -56,7 +56,7 @@ using VIRTUAL_SCREEN = struct
 /* See MSDN Section on Multiple Display Monitors: http://msdn.microsoft.com/en-us/library/dd145071
  */
 
-int sdl_list_monitors(SdlContext* sdl)
+int sdl_list_monitors([[maybe_unused]] SdlContext* sdl)
 {
 	SDL_Init(SDL_INIT_VIDEO);
 	const int nmonitors = SDL_GetNumVideoDisplays();
@@ -76,30 +76,6 @@ int sdl_list_monitors(SdlContext* sdl)
 
 	SDL_Quit();
 	return 0;
-}
-
-static BOOL sdl_is_monitor_id_active(SdlContext* sdl, UINT32 id)
-{
-	const rdpSettings* settings = nullptr;
-
-	WINPR_ASSERT(sdl);
-
-	settings = sdl->context()->settings;
-	WINPR_ASSERT(settings);
-
-	const UINT32 NumMonitorIds = freerdp_settings_get_uint32(settings, FreeRDP_NumMonitorIds);
-	if (!NumMonitorIds)
-		return TRUE;
-
-	for (UINT32 index = 0; index < NumMonitorIds; index++)
-	{
-		auto cur = static_cast<const UINT32*>(
-		    freerdp_settings_get_pointer_array(settings, FreeRDP_MonitorIds, index));
-		if (cur && (*cur == id))
-			return TRUE;
-	}
-
-	return FALSE;
 }
 
 static BOOL sdl_apply_max_size(SdlContext* sdl, UINT32* pMaxWidth, UINT32* pMaxHeight)

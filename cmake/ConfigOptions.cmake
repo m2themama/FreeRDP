@@ -26,24 +26,7 @@ option(WITH_JPEG "Use JPEG decoding." OFF)
 
 include(CompilerDetect)
 
-if(NOT WIN32)
-  cmake_dependent_option(
-    WITH_VALGRIND_MEMCHECK "Compile with valgrind helpers." OFF
-    "NOT WITH_SANITIZE_ADDRESS; NOT WITH_SANITIZE_MEMORY; NOT WITH_SANITIZE_THREAD" OFF
-  )
-  cmake_dependent_option(
-    WITH_SANITIZE_ADDRESS "Compile with gcc/clang address sanitizer." OFF
-    "NOT WITH_VALGRIND_MEMCHECK; NOT WITH_SANITIZE_MEMORY; NOT WITH_SANITIZE_THREAD" OFF
-  )
-  cmake_dependent_option(
-    WITH_SANITIZE_MEMORY "Compile with gcc/clang memory sanitizer." OFF
-    "NOT WITH_VALGRIND_MEMCHECK; NOT WITH_SANITIZE_ADDRESS; NOT WITH_SANITIZE_THREAD" OFF
-  )
-  cmake_dependent_option(
-    WITH_SANITIZE_THREAD "Compile with gcc/clang thread sanitizer." OFF
-    "NOT WITH_VALGRIND_MEMCHECK; NOT WITH_SANITIZE_ADDRESS; NOT WITH_SANITIZE_MEMORY" OFF
-  )
-else()
+if(WIN32)
   if(NOT UWP)
     option(WITH_MEDIA_FOUNDATION "Enable H264 media foundation decoder." OFF)
   endif()
@@ -60,7 +43,8 @@ cmake_dependent_option(
   BUILD_TESTING_INTERNAL "Build unit tests (CI only, not for packaging!)" OFF "NOT BUILD_TESTING" OFF
 )
 cmake_dependent_option(
-    BUILD_TESTING_NO_H264 "Skip building h264 unit tests (no implementation during packaging)" OFF "BUILD_TESTING OR BUILD_TESTING_INTERNAL" OFF
+  BUILD_TESTING_NO_H264 "Skip building h264 unit tests (no implementation during packaging)" OFF
+  "BUILD_TESTING OR BUILD_TESTING_INTERNAL" OFF
 )
 cmake_dependent_option(TESTS_WTSAPI_EXTRA "Build extra WTSAPI tests (interactive)" OFF "BUILD_TESTING_INTERNAL" OFF)
 cmake_dependent_option(BUILD_COMM_TESTS "Build comm related tests (require comm port)" OFF "BUILD_TESTING_INTERNAL" OFF)
