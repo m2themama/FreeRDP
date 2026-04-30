@@ -966,12 +966,12 @@ BOOL freerdp_bitmap_decompress_planar(BITMAP_PLANAR_CONTEXT* WINPR_RESTRICT plan
 				return FALSE;
 			}
 
-			if ((nXDst + nSrcWidth) * bpp > nDstStep)
+			if ((nXDst + nSrcWidth) * bpp > nTempStep)
 			{
 				WLog_ERR(TAG,
 				         "planar plane destination (X %" PRIu32 " + width %" PRIu32
 				         ") * bpp %" PRIu32 " exceeds stride %" PRIu32,
-				         nXDst, nSrcWidth, bpp, nDstStep);
+				         nXDst, nSrcWidth, bpp, nTempStep);
 				return FALSE;
 			}
 
